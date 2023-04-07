@@ -1,0 +1,754 @@
+diff --git a/node_modules/mammoth/lib/document-to-html.js b/node_modules/mammoth/lib/document-to-html.js
+index 32e8b03..7cc7c68 100644
+--- a/node_modules/mammoth/lib/document-to-html.js
++++ b/node_modules/mammoth/lib/document-to-html.js
+@@ -13,7 +13,7 @@ exports.DocumentConverter = DocumentConverter;
+ 
+ function DocumentConverter(options) {
+     return {
+-        convertToHtml: function(element) {
++        convertToHtml: function (element) {
+             var comments = _.indexBy(
+                 element.type === documents.types.document ? element.comments : [],
+                 "commentId"
+@@ -31,7 +31,7 @@ function DocumentConversion(options, comments) {
+ 
+     var referencedComments = [];
+ 
+-    options = _.extend({ignoreEmptyParagraphs: true}, options);
++    options = _.extend({ ignoreEmptyParagraphs: true }, options);
+     var idPrefix = options.idPrefix === undefined ? "" : options.idPrefix;
+     var ignoreEmptyParagraphs = options.ignoreEmptyParagraphs;
+ 
+@@ -45,19 +45,19 @@ function DocumentConversion(options, comments) {
+         var html = elementToHtml(document, messages, {});
+ 
+         var deferredNodes = [];
+-        walkHtml(html, function(node) {
++        walkHtml(html, function (node) {
+             if (node.type === "deferred") {
+                 deferredNodes.push(node);
+             }
+         });
+         var deferredValues = {};
+-        return promises.mapSeries(deferredNodes, function(deferred) {
+-            return deferred.value().then(function(value) {
++        return promises.mapSeries(deferredNodes, function (deferred) {
++            return deferred.value().then(function (value) {
+                 deferredValues[deferred.id] = value;
+             });
+-        }).then(function() {
++        }).then(function () {
+             function replaceDeferred(nodes) {
+-                return flatMap(nodes, function(node) {
++                return flatMap(nodes, function (node) {
+                     if (node.type === "deferred") {
+                         return deferredValues[node.id];
+                     } else if (node.children) {
+@@ -81,7 +81,7 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function convertElements(elements, messages, options) {
+-        return flatMap(elements, function(element) {
++        return flatMap(elements, function (element) {
+             return elementToHtml(element, messages, options);
+         });
+     }
+@@ -99,7 +99,7 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function convertParagraph(element, messages, options) {
+-        return htmlPathForParagraph(element, messages).wrap(function() {
++        return htmlPathForParagraph(element, messages).wrap(function () {
+             var content = convertElements(element.children, messages, options);
+             if (ignoreEmptyParagraphs) {
+                 return content;
+@@ -123,7 +123,7 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function convertRun(run, messages, options) {
+-        var nodes = function() {
++        var nodes = function () {
+             return convertElements(run.children, messages, options);
+         };
+         var paths = [];
+@@ -140,10 +140,10 @@ function DocumentConversion(options, comments) {
+             paths.push(findHtmlPathForRunProperty("underline"));
+         }
+         if (run.verticalAlignment === documents.verticalAlignment.subscript) {
+-            paths.push(htmlPaths.element("sub", {}, {fresh: false}));
++            paths.push(htmlPaths.element("sub", {}, { fresh: false }));
+         }
+         if (run.verticalAlignment === documents.verticalAlignment.superscript) {
+-            paths.push(htmlPaths.element("sup", {}, {fresh: false}));
++            paths.push(htmlPaths.element("sup", {}, { fresh: false }));
+         }
+         if (run.isItalic) {
+             paths.push(findHtmlPathForRunProperty("italic", "em"));
+@@ -151,6 +151,12 @@ function DocumentConversion(options, comments) {
+         if (run.isBold) {
+             paths.push(findHtmlPathForRunProperty("bold", "strong"));
+         }
++        if (run.color) {
++            paths.push(htmlPaths.element('font', { color: run.color }, { fresh: false }));
++        }
++        if (run.highlight) {
++            paths.push(htmlPaths.element('mark', { 'style': 'background-color:' + run.highlight }, { fresh: false }));
++        }
+         var stylePath = htmlPaths.empty;
+         var style = findStyle(run);
+         if (style) {
+@@ -160,7 +166,7 @@ function DocumentConversion(options, comments) {
+         }
+         paths.push(stylePath);
+ 
+-        paths.forEach(function(path) {
++        paths.forEach(function (path) {
+             nodes = path.wrap.bind(path, nodes);
+         });
+ 
+@@ -168,11 +174,11 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function findHtmlPathForRunProperty(elementType, defaultTagName) {
+-        var path = findHtmlPath({type: elementType});
++        var path = findHtmlPath({ type: elementType });
+         if (path) {
+             return path;
+         } else if (defaultTagName) {
+-            return htmlPaths.element(defaultTagName, {}, {fresh: false});
++            return htmlPaths.element(defaultTagName, {}, { fresh: false });
+         } else {
+             return htmlPaths.empty;
+         }
+@@ -192,10 +198,10 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function recoveringConvertImage(convertImage) {
+-        return function(image, messages) {
+-            return promises.attempt(function() {
++        return function (image, messages) {
++            return promises.attempt(function () {
+                 return convertImage(image, messages);
+-            }).caught(function(error) {
++            }).caught(function (error) {
+                 messages.push(results.error(error));
+                 return [];
+             });
+@@ -223,17 +229,17 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     var defaultTablePath = htmlPaths.elements([
+-        htmlPaths.element("table", {}, {fresh: true})
++        htmlPaths.element("table", {}, { fresh: true })
+     ]);
+ 
+     function convertTable(element, messages, options) {
+-        return findHtmlPath(element, defaultTablePath).wrap(function() {
++        return findHtmlPath(element, defaultTablePath).wrap(function () {
+             return convertTableChildren(element, messages, options);
+         });
+     }
+ 
+     function convertTableChildren(element, messages, options) {
+-        var bodyIndex = _.findIndex(element.children, function(child) {
++        var bodyIndex = _.findIndex(element.children, function (child) {
+             return !child.type === documents.types.tableRow || !child.isHeader;
+         });
+         if (bodyIndex === -1) {
+@@ -244,18 +250,18 @@ function DocumentConversion(options, comments) {
+             children = convertElements(
+                 element.children,
+                 messages,
+-                _.extend({}, options, {isTableHeader: false})
++                _.extend({}, options, { isTableHeader: false })
+             );
+         } else {
+             var headRows = convertElements(
+                 element.children.slice(0, bodyIndex),
+                 messages,
+-                _.extend({}, options, {isTableHeader: true})
++                _.extend({}, options, { isTableHeader: true })
+             );
+             var bodyRows = convertElements(
+                 element.children.slice(bodyIndex),
+                 messages,
+-                _.extend({}, options, {isTableHeader: false})
++                _.extend({}, options, { isTableHeader: false })
+             );
+             children = [
+                 Html.freshElement("thead", {}, headRows),
+@@ -289,16 +295,21 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     function convertCommentReference(reference, messages, options) {
+-        return findHtmlPath(reference, htmlPaths.ignore).wrap(function() {
++        return findHtmlPath(reference, htmlPaths.ignore).wrap(function () {
+             var comment = comments[reference.commentId];
+             var count = referencedComments.length + 1;
+-            var label = "[" + commentAuthorLabel(comment) + count + "]";
+-            referencedComments.push({label: label, comment: comment});
++            var label =
++                "[" +
++                commentAuthorLabel(comment) +
++                count +
++                "] ";
++
++            referencedComments.push({ label: label, comment: comment });
+             // TODO: remove duplication with note references
+             return [
+                 Html.freshElement("a", {
+                     href: "#" + referentHtmlId("comment", reference.commentId),
+-                    id: referenceHtmlId("comment", reference.commentId)
++                    id: referenceHtmlId("comment", reference.commentId),
+                 }, [Html.text(label)])
+             ];
+         });
+@@ -306,30 +317,34 @@ function DocumentConversion(options, comments) {
+ 
+     function convertComment(referencedComment, messages, options) {
+         // TODO: remove duplication with note references
+-
+         var label = referencedComment.label;
+         var comment = referencedComment.comment;
+         var body = convertElements(comment.body, messages, options).concat([
+             Html.nonFreshElement("p", {}, [
+                 Html.text(" "),
+-                Html.freshElement("a", {"href": "#" + referenceHtmlId("comment", comment.commentId)}, [
++                Html.freshElement("a", { href: "#" + referenceHtmlId("comment", comment.commentId) }, [
+                     Html.text("↑")
+                 ])
+             ])
+         ]);
+-
++        var commentInfo = "";
++        if (comment.authorName) {
++            commentInfo += "Author: " + comment.authorName + ". ";
++        }
++        if (commentInfo) {
++            body.unshift(Html.freshElement("p", {}, [Html.text(commentInfo)]));
++        }
+         return [
+-            Html.freshElement(
+-                "dt",
+-                {"id": referentHtmlId("comment", comment.commentId)},
+-                [Html.text("Comment " + label)]
+-            ),
+-            Html.freshElement("dd", {}, body)
++            Html.freshElement("dt", { id: referentHtmlId("comment", comment.commentId) }, [
++                Html.text("Comment " + label),
++            ]),
++            Html.freshElement("dd", {}, body),
+         ];
+     }
+ 
++
+     function convertBreak(element, messages, options) {
+-        return htmlPathForBreak(element).wrap(function() {
++        return htmlPathForBreak(element).wrap(function () {
+             return [];
+         });
+     }
+@@ -346,30 +361,30 @@ function DocumentConversion(options, comments) {
+     }
+ 
+     var elementConverters = {
+-        "document": function(document, messages, options) {
++        "document": function (document, messages, options) {
+             var children = convertElements(document.children, messages, options);
+-            var notes = noteReferences.map(function(noteReference) {
++            var notes = noteReferences.map(function (noteReference) {
+                 return document.notes.resolve(noteReference);
+             });
+             var notesNodes = convertElements(notes, messages, options);
+             return children.concat([
+                 Html.freshElement("ol", {}, notesNodes),
+-                Html.freshElement("dl", {}, flatMap(referencedComments, function(referencedComment) {
++                Html.freshElement("dl", {}, flatMap(referencedComments, function (referencedComment) {
+                     return convertComment(referencedComment, messages, options);
+                 }))
+             ]);
+         },
+         "paragraph": convertParagraph,
+         "run": convertRun,
+-        "text": function(element, messages, options) {
++        "text": function (element, messages, options) {
+             return [Html.text(element.value)];
+         },
+-        "tab": function(element, messages, options) {
++        "tab": function (element, messages, options) {
+             return [Html.text("\t")];
+         },
+-        "hyperlink": function(element, messages, options) {
++        "hyperlink": function (element, messages, options) {
+             var href = element.anchor ? "#" + htmlId(element.anchor) : element.href;
+-            var attributes = {href: href};
++            var attributes = { href: href };
+             if (element.targetFrame != null) {
+                 attributes.target = element.targetFrame;
+             }
+@@ -377,13 +392,13 @@ function DocumentConversion(options, comments) {
+             var children = convertElements(element.children, messages, options);
+             return [Html.nonFreshElement("a", attributes, children)];
+         },
+-        "bookmarkStart": function(element, messages, options) {
++        "bookmarkStart": function (element, messages, options) {
+             var anchor = Html.freshElement("a", {
+                 id: htmlId(element.name)
+             }, [Html.forceWrite]);
+             return [anchor];
+         },
+-        "noteReference": function(element, messages, options) {
++        "noteReference": function (element, messages, options) {
+             noteReferences.push(element);
+             var anchor = Html.freshElement("a", {
+                 href: "#" + noteHtmlId(element),
+@@ -392,15 +407,15 @@ function DocumentConversion(options, comments) {
+ 
+             return [Html.freshElement("sup", {}, [anchor])];
+         },
+-        "note": function(element, messages, options) {
++        "note": function (element, messages, options) {
+             var children = convertElements(element.body, messages, options);
+-            var backLink = Html.elementWithTag(htmlPaths.element("p", {}, {fresh: false}), [
++            var backLink = Html.elementWithTag(htmlPaths.element("p", {}, { fresh: false }), [
+                 Html.text(" "),
+-                Html.freshElement("a", {href: "#" + noteRefHtmlId(element)}, [Html.text("↑")])
++                Html.freshElement("a", { href: "#" + noteRefHtmlId(element) }, [Html.text("↑")])
+             ]);
+             var body = children.concat([backLink]);
+ 
+-            return Html.freshElement("li", {id: noteHtmlId(element)}, body);
++            return Html.freshElement("li", { id: noteHtmlId(element) }, body);
+         },
+         "commentReference": convertCommentReference,
+         "comment": convertComment,
+@@ -418,12 +433,12 @@ function DocumentConversion(options, comments) {
+ var deferredId = 1;
+ 
+ function deferredConversion(func) {
+-    return function(element, messages, options) {
++    return function (element, messages, options) {
+         return [
+             {
+                 type: "deferred",
+                 id: deferredId++,
+-                value: function() {
++                value: function () {
+                     return func(element, messages, options);
+                 }
+             }
+@@ -443,7 +458,7 @@ function flatMap(values, func) {
+ }
+ 
+ function walkHtml(nodes, callback) {
+-    nodes.forEach(function(node) {
++    nodes.forEach(function (node) {
+         callback(node);
+         if (node.children) {
+             walkHtml(node.children, callback);
+diff --git a/node_modules/mammoth/lib/documents.js b/node_modules/mammoth/lib/documents.js
+index edc9b7c..c5a8aa9 100644
+--- a/node_modules/mammoth/lib/documents.js
++++ b/node_modules/mammoth/lib/documents.js
+@@ -63,7 +63,9 @@ function Run(children, properties) {
+         isSmallCaps: properties.isSmallCaps,
+         verticalAlignment: properties.verticalAlignment || verticalAlignment.baseline,
+         font: properties.font || null,
+-        fontSize: properties.fontSize || null
++        fontSize: properties.fontSize || null,
++        color: properties.color ? '#' + properties.color : null,
++        highlight: properties.highlight ? properties.highlight : null
+     };
+ }
+ 
+@@ -105,16 +107,16 @@ function NoteReference(options) {
+ }
+ 
+ function Notes(notes) {
+-    this._notes = _.indexBy(notes, function(note) {
++    this._notes = _.indexBy(notes, function (note) {
+         return noteKey(note.noteType, note.noteId);
+     });
+ }
+ 
+-Notes.prototype.resolve = function(reference) {
++Notes.prototype.resolve = function (reference) {
+     return this.findNoteByKey(noteKey(reference.noteType, reference.noteId));
+ };
+ 
+-Notes.prototype.findNoteByKey = function(key) {
++Notes.prototype.findNoteByKey = function (key) {
+     return this._notes[key] || null;
+ };
+ 
+@@ -140,7 +142,7 @@ function comment(options) {
+         commentId: options.commentId,
+         body: options.body,
+         authorName: options.authorName,
+-        authorInitials: options.authorInitials
++        authorInitials: options.authorInitials,
+     };
+ }
+ 
+diff --git a/node_modules/mammoth/lib/docx/body-reader.js b/node_modules/mammoth/lib/docx/body-reader.js
+index 61b198b..34af56a 100644
+--- a/node_modules/mammoth/lib/docx/body-reader.js
++++ b/node_modules/mammoth/lib/docx/body-reader.js
+@@ -11,10 +11,10 @@ var uris = require("./uris");
+ 
+ function createBodyReader(options) {
+     return {
+-        readXmlElement: function(element) {
++        readXmlElement: function (element) {
+             return new BodyReader(options).readXmlElement(element);
+         },
+-        readXmlElements: function(elements) {
++        readXmlElements: function (elements) {
+             return new BodyReader(options).readXmlElements(elements);
+         }
+     };
+@@ -58,7 +58,7 @@ function BodyReader(options) {
+     }
+ 
+     function readRunProperties(element) {
+-        return readRunStyle(element).map(function(style) {
++        return readRunStyle(element).map(function (style) {
+             var fontSizeString = element.firstOrEmpty("w:sz").attributes["w:val"];
+             // w:sz gives the font size in half points, so halve the value to get the size in points
+             var fontSize = /^[0-9]+$/.test(fontSizeString) ? parseInt(fontSizeString, 10) / 2 : null;
+@@ -75,7 +75,9 @@ function BodyReader(options) {
+                 isItalic: readBooleanElement(element.first("w:i")),
+                 isStrikethrough: readBooleanElement(element.first("w:strike")),
+                 isAllCaps: readBooleanElement(element.first("w:caps")),
+-                isSmallCaps: readBooleanElement(element.first("w:smallCaps"))
++                isSmallCaps: readBooleanElement(element.first("w:smallCaps")),
++                color: element.firstOrEmpty("w:color").attributes["w:val"],
++                highlight: element.firstOrEmpty("w:highlight").attributes["w:val"],
+             };
+         });
+     }
+@@ -126,10 +128,10 @@ function BodyReader(options) {
+                 }
+             }
+         }
+-        return elementResultWithMessages({styleId: styleId, name: name}, messages);
++        return elementResultWithMessages({ styleId: styleId, name: name }, messages);
+     }
+ 
+-    var unknownComplexField = {type: "unknown"};
++    var unknownComplexField = { type: "unknown" };
+ 
+     function readFldChar(element) {
+         var type = element.attributes["w:fldCharType"];
+@@ -140,7 +142,7 @@ function BodyReader(options) {
+             complexFieldStack.pop();
+         } else if (type === "separate") {
+             var hyperlinkOptions = parseHyperlinkFieldCode(currentInstrText.join(''));
+-            var complexField = hyperlinkOptions === null ? unknownComplexField : {type: "hyperlink", options: hyperlinkOptions};
++            var complexField = hyperlinkOptions === null ? unknownComplexField : { type: "hyperlink", options: hyperlinkOptions };
+             complexFieldStack.pop();
+             complexFieldStack.push(complexField);
+         }
+@@ -148,7 +150,7 @@ function BodyReader(options) {
+     }
+ 
+     function currentHyperlinkOptions() {
+-        var topHyperlink = _.last(complexFieldStack.filter(function(complexField) {
++        var topHyperlink = _.last(complexFieldStack.filter(function (complexField) {
+             return complexField.type === "hyperlink";
+         }));
+         return topHyperlink ? topHyperlink.options : null;
+@@ -157,12 +159,12 @@ function BodyReader(options) {
+     function parseHyperlinkFieldCode(code) {
+         var externalLinkResult = /\s*HYPERLINK "(.*)"/.exec(code);
+         if (externalLinkResult) {
+-            return {href: externalLinkResult[1]};
++            return { href: externalLinkResult[1] };
+         }
+ 
+         var internalLinkResult = /\s*HYPERLINK\s+\\l\s+"(.*)"/.exec(code);
+         if (internalLinkResult) {
+-            return {anchor: internalLinkResult[1]};
++            return { anchor: internalLinkResult[1] };
+         }
+ 
+         return null;
+@@ -184,7 +186,7 @@ function BodyReader(options) {
+ 
+         if (unicodeCharacter == null) {
+             return emptyResultWithMessages([warning(
+-                "A w:sym element with an unsupported character was ignored: char " +  char + " in font " + font
++                "A w:sym element with an unsupported character was ignored: char " + char + " in font " + font
+             )]);
+         } else {
+             return elementResult(new documents.Text(unicodeCharacter.string));
+@@ -192,7 +194,7 @@ function BodyReader(options) {
+     }
+ 
+     function noteReferenceReader(noteType) {
+-        return function(element) {
++        return function (element) {
+             var noteId = element.attributes["w:id"];
+             return elementResult(new documents.NoteReference({
+                 noteType: noteType,
+@@ -212,9 +214,9 @@ function BodyReader(options) {
+     }
+ 
+     var xmlElementReaders = {
+-        "w:p": function(element) {
++        "w:p": function (element) {
+             return readXmlElements(element.children)
+-                .map(function(children) {
++                .map(function (children) {
+                     var properties = _.find(children, isParagraphProperties);
+                     return new documents.Paragraph(
+                         children.filter(negate(isParagraphProperties)),
+@@ -223,8 +225,8 @@ function BodyReader(options) {
+                 })
+                 .insertExtra();
+         },
+-        "w:pPr": function(element) {
+-            return readParagraphStyle(element).map(function(style) {
++        "w:pPr": function (element) {
++            return readParagraphStyle(element).map(function (style) {
+                 return {
+                     type: "paragraphProperties",
+                     styleId: style.styleId,
+@@ -235,9 +237,9 @@ function BodyReader(options) {
+                 };
+             });
+         },
+-        "w:r": function(element) {
++        "w:r": function (element) {
+             return readXmlElements(element.children)
+-                .map(function(children) {
++                .map(function (children) {
+                     var properties = _.find(children, isRunProperties);
+                     children = children.filter(negate(isRunProperties));
+ 
+@@ -252,29 +254,29 @@ function BodyReader(options) {
+         "w:rPr": readRunProperties,
+         "w:fldChar": readFldChar,
+         "w:instrText": readInstrText,
+-        "w:t": function(element) {
++        "w:t": function (element) {
+             return elementResult(new documents.Text(element.text()));
+         },
+-        "w:tab": function(element) {
++        "w:tab": function (element) {
+             return elementResult(new documents.Tab());
+         },
+-        "w:noBreakHyphen": function() {
++        "w:noBreakHyphen": function () {
+             return elementResult(new documents.Text("\u2011"));
+         },
+-        "w:softHyphen": function(element) {
++        "w:softHyphen": function (element) {
+             return elementResult(new documents.Text("\u00AD"));
+         },
+         "w:sym": readSymbol,
+-        "w:hyperlink": function(element) {
++        "w:hyperlink": function (element) {
+             var relationshipId = element.attributes["r:id"];
+             var anchor = element.attributes["w:anchor"];
+-            return readXmlElements(element.children).map(function(children) {
++            return readXmlElements(element.children).map(function (children) {
+                 function create(options) {
+                     var targetFrame = element.attributes["w:tgtFrame"] || null;
+ 
+                     return new documents.Hyperlink(
+                         children,
+-                        _.extend({targetFrame: targetFrame}, options)
++                        _.extend({ targetFrame: targetFrame }, options)
+                     );
+                 }
+ 
+@@ -283,9 +285,9 @@ function BodyReader(options) {
+                     if (anchor) {
+                         href = uris.replaceFragment(href, anchor);
+                     }
+-                    return create({href: href});
++                    return create({ href: href });
+                 } else if (anchor) {
+-                    return create({anchor: anchor});
++                    return create({ anchor: anchor });
+                 } else {
+                     return children;
+                 }
+@@ -297,7 +299,7 @@ function BodyReader(options) {
+         "w:footnoteReference": noteReferenceReader("footnote"),
+         "w:endnoteReference": noteReferenceReader("endnote"),
+         "w:commentReference": readCommentReference,
+-        "w:br": function(element) {
++        "w:br": function (element) {
+             var breakType = element.attributes["w:type"];
+             if (breakType == null || breakType === "textWrapping") {
+                 return elementResult(documents.lineBreak);
+@@ -309,20 +311,20 @@ function BodyReader(options) {
+                 return emptyResultWithMessages([warning("Unsupported break type: " + breakType)]);
+             }
+         },
+-        "w:bookmarkStart": function(element){
++        "w:bookmarkStart": function (element) {
+             var name = element.attributes["w:name"];
+             if (name === "_GoBack") {
+                 return emptyResult();
+             } else {
+-                return elementResult(new documents.BookmarkStart({name: name}));
++                return elementResult(new documents.BookmarkStart({ name: name }));
+             }
+         },
+ 
+-        "mc:AlternateContent": function(element) {
++        "mc:AlternateContent": function (element) {
+             return readChildElements(element.first("mc:Fallback"));
+         },
+ 
+-        "w:sdt": function(element) {
++        "w:sdt": function (element) {
+             return readXmlElements(element.firstOrEmpty("w:sdtContent").children);
+         },
+ 
+@@ -330,7 +332,7 @@ function BodyReader(options) {
+         "w:object": readChildElements,
+         "w:smartTag": readChildElements,
+         "w:drawing": readChildElements,
+-        "w:pict": function(element) {
++        "w:pict": function (element) {
+             return readChildElements(element).toExtra();
+         },
+         "v:roundrect": readChildElements,
+@@ -354,15 +356,15 @@ function BodyReader(options) {
+         var propertiesResult = readTableProperties(element.firstOrEmpty("w:tblPr"));
+         return readXmlElements(element.children)
+             .flatMap(calculateRowSpans)
+-            .flatMap(function(children) {
+-                return propertiesResult.map(function(properties) {
++            .flatMap(function (children) {
++                return propertiesResult.map(function (properties) {
+                     return documents.Table(children, properties);
+                 });
+             });
+     }
+ 
+     function readTableProperties(element) {
+-        return readTableStyle(element).map(function(style) {
++        return readTableStyle(element).map(function (style) {
+             return {
+                 styleId: style.styleId,
+                 styleName: style.name
+@@ -373,19 +375,19 @@ function BodyReader(options) {
+     function readTableRow(element) {
+         var properties = element.firstOrEmpty("w:trPr");
+         var isHeader = !!properties.first("w:tblHeader");
+-        return readXmlElements(element.children).map(function(children) {
+-            return documents.TableRow(children, {isHeader: isHeader});
++        return readXmlElements(element.children).map(function (children) {
++            return documents.TableRow(children, { isHeader: isHeader });
+         });
+     }
+ 
+     function readTableCell(element) {
+-        return readXmlElements(element.children).map(function(children) {
++        return readXmlElements(element.children).map(function (children) {
+             var properties = element.firstOrEmpty("w:tcPr");
+ 
+             var gridSpan = properties.firstOrEmpty("w:gridSpan").attributes["w:val"];
+             var colSpan = gridSpan ? parseInt(gridSpan, 10) : 1;
+ 
+-            var cell = documents.TableCell(children, {colSpan: colSpan});
++            var cell = documents.TableCell(children, { colSpan: colSpan });
+             cell._vMerge = readVMerge(properties);
+             return cell;
+         });
+@@ -402,7 +404,7 @@ function BodyReader(options) {
+     }
+ 
+     function calculateRowSpans(rows) {
+-        var unexpectedNonRows = _.any(rows, function(row) {
++        var unexpectedNonRows = _.any(rows, function (row) {
+             return row.type !== documents.types.tableRow;
+         });
+         if (unexpectedNonRows) {
+@@ -410,8 +412,8 @@ function BodyReader(options) {
+                 "unexpected non-row element in table, cell merging may be incorrect"
+             )]);
+         }
+-        var unexpectedNonCells = _.any(rows, function(row) {
+-            return _.any(row.children, function(cell) {
++        var unexpectedNonCells = _.any(rows, function (row) {
++            return _.any(row.children, function (cell) {
+                 return cell.type !== documents.types.tableCell;
+             });
+         });
+@@ -423,9 +425,9 @@ function BodyReader(options) {
+ 
+         var columns = {};
+ 
+-        rows.forEach(function(row) {
++        rows.forEach(function (row) {
+             var cellIndex = 0;
+-            row.children.forEach(function(cell) {
++            row.children.forEach(function (cell) {
+                 if (cell._vMerge && columns[cellIndex]) {
+                     columns[cellIndex].rowSpan++;
+                 } else {
+@@ -436,11 +438,11 @@ function BodyReader(options) {
+             });
+         });
+ 
+-        rows.forEach(function(row) {
+-            row.children = row.children.filter(function(cell) {
++        rows.forEach(function (row) {
++            row.children = row.children.filter(function (cell) {
+                 return !cell._vMerge;
+             });
+-            row.children.forEach(function(cell) {
++            row.children.forEach(function (cell) {
+                 delete cell._vMerge;
+             });
+         });
+@@ -584,7 +586,7 @@ function isRunProperties(element) {
+ }
+ 
+ function negate(predicate) {
+-    return function(value) {
++    return function (value) {
+         return !predicate(value);
+     };
+ }
+@@ -616,11 +618,11 @@ function ReadResult(element, extra, messages) {
+     this.messages = this._result.messages;
+ }
+ 
+-ReadResult.prototype.toExtra = function() {
++ReadResult.prototype.toExtra = function () {
+     return new ReadResult(null, joinElements(this.extra, this.value), this.messages);
+ };
+ 
+-ReadResult.prototype.insertExtra = function() {
++ReadResult.prototype.insertExtra = function () {
+     var extra = this.extra;
+     if (extra && extra.length) {
+         return new ReadResult(joinElements(this.value, extra), null, this.messages);
+@@ -629,15 +631,15 @@ ReadResult.prototype.insertExtra = function() {
+     }
+ };
+ 
+-ReadResult.prototype.map = function(func) {
+-    var result = this._result.map(function(value) {
++ReadResult.prototype.map = function (func) {
++    var result = this._result.map(function (value) {
+         return func(value.element);
+     });
+     return new ReadResult(result.value, this.extra, result.messages);
+ };
+ 
+-ReadResult.prototype.flatMap = function(func) {
+-    var result = this._result.flatMap(function(value) {
++ReadResult.prototype.flatMap = function (func) {
++    var result = this._result.flatMap(function (value) {
+         return func(value.element)._result;
+     });
+     return new ReadResult(result.value.element, joinElements(this.extra, result.value.extra), result.messages);
