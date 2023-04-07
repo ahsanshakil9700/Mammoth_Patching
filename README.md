@@ -1,4 +1,4 @@
-# Mammoth_Patching
+# Mammoth Patching
 
 This patch updates the mammoth package to keep the following while conversion: 
 - text highlights
