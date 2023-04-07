@@ -1,5 +1,10 @@
 # Mammoth_Patching
 
+This patch updates the mammoth package to keep the following while conversion: 
+- text highlights
+- font colors
+- author names in comments
+
 ## Install Instructions:
 
 #### Run ``` npm install ``` to install package dependencies, and packages "Mammoth" and "Patch-Package"
